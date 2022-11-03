@@ -191,7 +191,7 @@ channels = channels.sort(function (a, b) {  return a - b;  }); // modified from 
       document.getElementById('myChart'),
       config
     );
-
+    
     //Adding Reset Button
     let btn = document.createElement("button");
     btn.innerHTML = "Reset + Change Colours";
@@ -204,3 +204,8 @@ channels = channels.sort(function (a, b) {  return a - b;  }); // modified from 
     } 
 
   }
+
+//Resets the page if the fragment is changed (Fixes issue #3)
+window.addEventListener('hashchange', () => { //https://developer.mozilla.org/en-US/docs/Web/API/Window/hashchange_event
+  resetPage()
+});
