@@ -182,17 +182,36 @@ if (numMacAdd != payloadArray.length){alert("Warning: Some networks present at b
 wifiDataset = []
 
 for (var i = 0; i < payloadArray.length; i++) { 
-  wifiDataset.push({
+  if (i == 0){ //pushes first data into array
+    wifiDataset.push({ 
+        "label":payloadArray[i][0]=="" ? "<hidden>" : payloadArray[i][0], //replacing blank SSID with <hidden>
+        "backgroundColor": dynamicColors(),
+        "borderColor": "rgba(0,0,0,0)", //make lines invisible
+        pointStyle: 'circle',
+        pointRadius:15,
+        "data":[{
+          "rssi":payloadArray[i][2],
+          "channel":payloadArray[i][3]
+        }]
+    })
+  } else if (payloadArray[i][0] != payloadArray[i-1][0]){ //if ssid doesn't match previous, add next ssid
+    wifiDataset.push({
       "label":payloadArray[i][0]=="" ? "<hidden>" : payloadArray[i][0], //replacing blank SSID with <hidden>
-      "backgroundColor": i>0 ? payloadArray[i][0]==payloadArray[i-1][0] ? wifiDataset[wifiDataset.length-1].backgroundColor : dynamicColors() : dynamicColors(),
-      // ^^ gives same SSID the same random color 
+      "backgroundColor": dynamicColors(),
+      "borderColor": "rgba(0,0,0,0)", //make lines invisible
       pointStyle: 'circle',
       pointRadius:15,
       "data":[{
         "rssi":payloadArray[i][2],
         "channel":payloadArray[i][3]
       }]
-  })
+    })
+  } else { //if ssid matches previous, append data points
+    wifiDataset[wifiDataset.length-1].data.push({
+      "rssi":payloadArray[i][2],
+      "channel":payloadArray[i][3]
+    })
+  }
 }
 
 if (debugOutput){
