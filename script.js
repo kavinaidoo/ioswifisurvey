@@ -1,3 +1,8 @@
+function round5(x) //taken from -> https://stackoverflow.com/a/18953446
+{
+    return Math.ceil(x/5)*5;
+}
+
 const getOrCreateLegendList = (chart, id) => { //modified from -> https://www.chartjs.org/docs/3.9.1/samples/legend/html.html
   const legendContainer = document.getElementById(id);
   let listContainer = legendContainer.querySelector('ul');
@@ -147,11 +152,15 @@ var customSlice = payloadArray => payloadArray.slice(1, 2); // modified from -> 
 var macAdd = Array.from(new Set(payloadArray.map(customSlice).flat()));
 var numMacAdd = macAdd.length
 
-// Getting Latest Time stamp + appending time in seconds to payloadArray + converting numbers
+// Getting Latest Time stamp + appending time in seconds to payloadArray + converting numbers + getting min + max RSSI
 var latestTime = 0;
+var minRSSI = 0;
+var maxRSSI = -100;
 
 for (var i = 0; i < payloadArray.length; i++) { 
     payloadArray[i][2] = Number(payloadArray[i][2]) //changing RSSI to number
+    if (payloadArray[i][2]>maxRSSI){maxRSSI = payloadArray[i][2]}
+    if (payloadArray[i][2]<minRSSI){minRSSI = payloadArray[i][2]}
     payloadArray[i][3] = Number(payloadArray[i][3]) //changing Channel to number
     var intArray = payloadArray[i][4].split(':').map(Number); // modified from -> https://stackoverflow.com/a/15677905
     payloadArray[i][5] = intArray[0]*60*60 + intArray[1]*60 + intArray[2]; //adding time in seconds
@@ -206,7 +215,55 @@ channels = channels.sort(function (a, b) {  return a - b;  }); // modified from 
     datasets: wifiDataset
   };
 
-  const config = {
+  //breakpoints for RSSI -> https://www.speedguide.net/faq/how-does-rssi-dbm-relate-to-signal-quality-percent-439
+  rssiStrong = 0
+  rssiMedium = -55;
+  rssiWeak = -85;
+  rssiWeakest = -100
+
+  //Defines the annotations for Red/Yellow/Green background when signal is strong/medium/weak
+  var annoStrong = { //rssiStrong
+    display: true,
+    type: 'box',
+    backgroundColor: 'rgba(165, 214, 167, 0.1)',
+    borderWidth: 0,
+    yMax: rssiStrong,
+    yMin: rssiMedium,
+  };
+
+  var annoMedium = { //rssiMedium
+    display: true,
+    type: 'box',
+    backgroundColor: 'rgba(255, 245, 157, 0.1)',
+    borderWidth: 0,
+    yMax: rssiMedium,
+    yMin: rssiWeak,
+  };
+
+  var annoWeak = { //rssiWeak
+    display: true,
+    type: 'box',
+    backgroundColor: 'rgba(255, 133, 119, 0.07)',
+    borderWidth: 0,
+    yMax: rssiWeak,
+    yMin: rssiWeakest,
+  };
+
+  // annotations don't allow the chart to autoscale, this sets the "max" value on the scale and
+  // shows/hides sections of the annotations for signal strength colour
+  if (maxRSSI < rssiWeak){
+    annoStrong.display = false
+    annoMedium.display = false
+    annoWeak.yMax = round5(maxRSSI)
+  } else if ((rssiWeak <= maxRSSI)&&(maxRSSI < rssiMedium)){
+    annoStrong.display = false
+    annoMedium.yMax = round5(maxRSSI)
+  } else if (maxRSSI >= rssiMedium){
+    annoStrong.yMax = round5(maxRSSI)
+  }
+  
+
+  var config = {
     type: 'line',
     data: data,
     options: {
@@ -236,6 +293,16 @@ channels = channels.sort(function (a, b) {  return a - b;  }); // modified from 
           },
           legend:{
             display:false,
+          },
+          annotation: { // adapted from -> https://www.chartjs.org/chartjs-plugin-annotation/latest/samples/box/quarters.html
+            common: {
+              drawTime: 'afterDraw'
+            },
+            annotations: {
+              annoStrong,
+              annoMedium,
+              annoWeak
+            }
           }
         },
         parsing: {
@@ -266,7 +333,7 @@ channels = channels.sort(function (a, b) {  return a - b;  }); // modified from 
   if (plotChartBool) { //if no errors, plot chart + add button
     
     // Plotting Chart
-    const myChart = new Chart(
+    var myChart = new Chart(
       document.getElementById('myChart'),
       config
     );
