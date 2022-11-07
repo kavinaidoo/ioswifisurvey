@@ -1,6 +1,11 @@
-function round5(x) //taken from -> https://stackoverflow.com/a/18953446
+function round5up(x) //taken from -> https://stackoverflow.com/a/18953446
 {
     return Math.ceil(x/5)*5;
+}
+
+function round10down(x) //taken from -> https://stackoverflow.com/a/18953446
+{
+    return Math.floor(x/10)*10;
 }
 
 const getOrCreateLegendList = (chart, id) => { //modified from -> https://www.chartjs.org/docs/3.9.1/samples/legend/html.html
@@ -277,20 +282,7 @@ channels = channels.sort(function (a, b) {  return a - b;  }); // modified from 
     yMin: rssiWeakest,
   };
 
-  // annotations don't allow the chart to autoscale, this sets the "max" value on the scale and
-  // shows/hides sections of the annotations for signal strength colour
-  if (maxRSSI < rssiWeak){
-    annoStrong.display = false
-    annoMedium.display = false
-    annoWeak.yMax = round5(maxRSSI)
-  } else if ((rssiWeak <= maxRSSI)&&(maxRSSI < rssiMedium)){
-    annoStrong.display = false
-    annoMedium.yMax = round5(maxRSSI)
-  } else if (maxRSSI >= rssiMedium){
-    annoStrong.yMax = round5(maxRSSI)
-  }
   
-
   var config = {
     type: 'line',
     data: data,
@@ -339,8 +331,12 @@ channels = channels.sort(function (a, b) {  return a - b;  }); // modified from 
         },
         scales: {
           y:{
+              min: round10down(minRSSI),
+              max: round5up(maxRSSI),
               ticks: {
                   reverse: true, //allows for reversal of y-axis to show RSSI correctly (closer to top is better)
+                  stepSize: 5, //taken from -> https://stackoverflow.com/a/37719294
+
               },
               title:{
                 display:true,
