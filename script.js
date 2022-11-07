@@ -152,15 +152,15 @@ var customSlice = payloadArray => payloadArray.slice(1, 2); // modified from -> 
 var macAdd = Array.from(new Set(payloadArray.map(customSlice).flat()));
 var numMacAdd = macAdd.length
 
-// Getting Latest Time stamp + appending time in seconds to payloadArray + converting numbers + getting min + max RSSI
+// Getting Latest Time stamp + appending time in seconds to payloadArray + converting numbers 
 var latestTime = 0;
-var minRSSI = 0;
-var maxRSSI = -100;
+//var minRSSI = 0;
+//var maxRSSI = -100;
 
 for (var i = 0; i < payloadArray.length; i++) { 
     payloadArray[i][2] = Number(payloadArray[i][2]) //changing RSSI to number
-    if (payloadArray[i][2]>maxRSSI){maxRSSI = payloadArray[i][2]}
-    if (payloadArray[i][2]<minRSSI){minRSSI = payloadArray[i][2]}
+    //if (payloadArray[i][2]>maxRSSI){maxRSSI = payloadArray[i][2]}
+    //if (payloadArray[i][2]<minRSSI){minRSSI = payloadArray[i][2]}
     payloadArray[i][3] = Number(payloadArray[i][3]) //changing Channel to number
     var intArray = payloadArray[i][4].split(':').map(Number); // modified from -> https://stackoverflow.com/a/15677905
     payloadArray[i][5] = intArray[0]*60*60 + intArray[1]*60 + intArray[2]; //adding time in seconds
@@ -168,6 +168,15 @@ for (var i = 0; i < payloadArray.length; i++) {
 }
 
 payloadArray = payloadArray.filter(entry => entry[5] == latestTime); //remove all rows which are not latestTime (plots values only at end of scan)
+
+// Getting min + max RSSI
+var minRSSI = 0;
+var maxRSSI = -100;
+
+for (var i = 0; i < payloadArray.length; i++) { 
+    if (payloadArray[i][2]>maxRSSI){maxRSSI = payloadArray[i][2]}
+    if (payloadArray[i][2]<minRSSI){minRSSI = payloadArray[i][2]}
+}
 
 function sortFunction(a, b) { 
   return a[0].localeCompare(b[0]) //localeCompare used to sort strings correctly
