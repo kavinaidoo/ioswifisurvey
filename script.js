@@ -14,7 +14,6 @@ const getOrCreateLegendList = (chart, id) => { //modified from -> https://www.ch
 
   if (!listContainer) {
     listContainer = document.createElement('ul');
-    //listContainer.style.display = 'flex';
     listContainer.style.flexDirection = 'row';
     listContainer.style.margin = 0;
     listContainer.style.padding = 0;
@@ -159,15 +158,12 @@ var numMacAdd = macAdd.length
 
 // Getting Latest Time stamp + appending time in seconds to payloadArray + converting numbers 
 var latestTime = 0;
-//var minRSSI = 0;
-//var maxRSSI = -100;
+var intArray;
 
 for (var i = 0; i < payloadArray.length; i++) { 
     payloadArray[i][2] = Number(payloadArray[i][2]) //changing RSSI to number
-    //if (payloadArray[i][2]>maxRSSI){maxRSSI = payloadArray[i][2]}
-    //if (payloadArray[i][2]<minRSSI){minRSSI = payloadArray[i][2]}
     payloadArray[i][3] = Number(payloadArray[i][3]) //changing Channel to number
-    var intArray = payloadArray[i][4].split(':').map(Number); // modified from -> https://stackoverflow.com/a/15677905
+    intArray = payloadArray[i][4].substring(0,8).split(':').map(Number); // modified from -> https://stackoverflow.com/a/15677905
     payloadArray[i][5] = intArray[0]*60*60 + intArray[1]*60 + intArray[2]; //adding time in seconds
     latestTime = Math.max(latestTime,payloadArray[i][5])
 }
