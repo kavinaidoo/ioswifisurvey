@@ -280,6 +280,8 @@ for (var i = 0; i < fullPayloadArray.length; i++) {
         "borderColor": dynamicColors(),
         pointStyle: 'circle',
         pointRadius:2,
+        cubicInterpolationMode: 'monotone',
+        tension: 0.4,
         "data":[{
           "rssi":fullPayloadArray[i][2],
           "time":fullPayloadArray[i][5]
@@ -292,6 +294,8 @@ for (var i = 0; i < fullPayloadArray.length; i++) {
       "borderColor": dynamicColors(), //make lines invisible
       pointStyle: 'circle',
       pointRadius:2,
+      cubicInterpolationMode: 'monotone',
+      tension: 0.4,
       "data":[{
         "rssi":fullPayloadArray[i][2],
         "time":fullPayloadArray[i][5]
