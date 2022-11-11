@@ -1,6 +1,6 @@
-function round5up(x) //taken from -> https://stackoverflow.com/a/18953446
+function round10up(x) //taken from -> https://stackoverflow.com/a/18953446
 {
-    return Math.ceil(x/5)*5;
+    return Math.ceil(x/10)*10;
 }
 
 function round10down(x) //taken from -> https://stackoverflow.com/a/18953446
@@ -127,8 +127,31 @@ var dynamicColors = function() { // modified from -> https://github.com/chartjs/
     return "rgba(" + r + "," + g + "," + b + ",0.5)";
 }
 
+function switchMode(){
+
+  if (plotMode == "rssiVsChannel"){ //code to change to rssiVsTime
+    config.type="line";
+    data.datasets = rssiVsTimeDataset;
+    data.labels = times;
+    config.options.scales.x.title.text = "Time (s)";
+    config.options.parsing.xAxisKey = "time";
+    myChart.update();
+    plotMode = "rssiVsTime";
+  } else if (plotMode == "rssiVsTime"){ //code to change to rssiVsChannel
+    config.type="line";
+    data.labels = channels;
+    data.datasets = rssiVsChannelDataset;
+    config.options.scales.x.title.text = "Signal Strength (dB)";
+    config.options.parsing.xAxisKey = "channel";
+    myChart.update();
+    plotMode = "rssiVsChannel";
+  }
+
+}
+
 var plotChartBool = true; //true until there's a problem, suppresses drawing of chart & buttons
 var debugOutput = false; //enables console.logs
+var plotMode = "rssiVsChannel"; //determines type of chart
 
 var payload = decodeURI(window.location.hash.replaceAll(/\,\%20/g,","));  // pulls data from URL fragment and removes urlencoded spaces
 
@@ -168,6 +191,10 @@ for (var i = 0; i < payloadArray.length; i++) {
     latestTime = Math.max(latestTime,payloadArray[i][5])
 }
 
+var fullPayloadArray = payloadArray; //contains entire payloadArray (used for rssiVsTime), stored here because original payloadArray is filtered
+
+//----------------------------------------------------- RSSI vs CHANNEL CODE BEGIN -----------------------------------------------------
+
 payloadArray = payloadArray.filter(entry => entry[5] == latestTime); //remove all rows which are not latestTime (plots values only at end of scan)
 
 // Getting min + max RSSI
@@ -188,12 +215,12 @@ payloadArray.sort(sortFunction) //sort payloadArray
 // There should be the same number of MAC addresses as length of payloadArray, if mismatch, it means that the MAC was not present at end of scan but was present during scan
 if (numMacAdd != payloadArray.length){alert("Warning: Some networks present at beginning of Airport Utility WiFi scan are not present at end. Only networks at the end of the scan are shown. Recommend a re-scan in Airport Utility. Dismiss to see graph anyway.")}
     
-//Building wifiDataset that chart.js will use
-wifiDataset = []
+//Building rssiVsChannelDataset
+rssiVsChannelDataset = []
 
 for (var i = 0; i < payloadArray.length; i++) { 
   if (i == 0){ //pushes first data into array
-    wifiDataset.push({ 
+    rssiVsChannelDataset.push({ 
         "label":payloadArray[i][0]=="" ? "<hidden>" : payloadArray[i][0], //replacing blank SSID with <hidden>
         "backgroundColor": dynamicColors(),
         "borderColor": "rgba(0,0,0,0)", //make lines invisible
@@ -205,7 +232,7 @@ for (var i = 0; i < payloadArray.length; i++) {
         }]
     })
   } else if (payloadArray[i][0] != payloadArray[i-1][0]){ //if ssid doesn't match previous, add next ssid
-    wifiDataset.push({
+    rssiVsChannelDataset.push({
       "label":payloadArray[i][0]=="" ? "<hidden>" : payloadArray[i][0], //replacing blank SSID with <hidden>
       "backgroundColor": dynamicColors(),
       "borderColor": "rgba(0,0,0,0)", //make lines invisible
@@ -217,18 +244,11 @@ for (var i = 0; i < payloadArray.length; i++) {
       }]
     })
   } else { //if ssid matches previous, append data points
-    wifiDataset[wifiDataset.length-1].data.push({
+    rssiVsChannelDataset[rssiVsChannelDataset.length-1].data.push({
       "rssi":payloadArray[i][2],
       "channel":payloadArray[i][3]
     })
   }
-}
-
-if (debugOutput){
-  console.log("vvv payloadArray after processing vvv");
-  console.log(JSON.parse(JSON.stringify(payloadArray)))  //stops "hoisting" of payloadArray, shows version at that point in code
-  console.log("vvv wifiDataset vvv")
-  console.log(JSON.parse(JSON.stringify(wifiDataset)))
 }
 
 // Getting Array of Channels, used as chart label
@@ -236,12 +256,79 @@ customSlice = payloadArray => payloadArray.slice(3, 4); // modified from -> http
 var channels = Array.from(new Set(payloadArray.map(customSlice).flat()));
 channels = channels.sort(function (a, b) {  return a - b;  }); // modified from -> https://stackoverflow.com/a/21595293
 
-// X-axis is channel
-// Y-axis is RSSI (signal strength)
+//----------------------------------------------------- RSSI vs CHANNEL CODE END -----------------------------------------------------
+
+
+//----------------------------------------------------- RSSI vs TIME CODE BEGIN -----------------------------------------------------
+
+//building rssiVsTimeDataset
+
+function sortFunction2(a, b) { 
+  return a[1].localeCompare(b[1]) //localeCompare used to sort strings correctly
+}
+
+fullPayloadArray.sort(sortFunction2) //sort fullPayloadArray by MAC Address
+
+
+rssiVsTimeDataset = []
+
+for (var i = 0; i < fullPayloadArray.length; i++) { 
+  if (i == 0){ //pushes first data into array
+    rssiVsTimeDataset.push({ 
+        "label":fullPayloadArray[i][0]=="" ? "<hidden>" : fullPayloadArray[i][0], //replacing blank SSID with <hidden>
+        "backgroundColor": dynamicColors(),
+        "borderColor": dynamicColors(),
+        pointStyle: 'circle',
+        pointRadius:2,
+        "data":[{
+          "rssi":fullPayloadArray[i][2],
+          "time":fullPayloadArray[i][5]
+        }]
+    })
+  } else if (fullPayloadArray[i][1] != fullPayloadArray[i-1][1]){ //if mac doesn't match previous, add next ssid
+    rssiVsTimeDataset.push({
+      "label":fullPayloadArray[i][0]=="" ? "<hidden>" : fullPayloadArray[i][0], //replacing blank SSID with <hidden>
+      "backgroundColor": dynamicColors(),
+      "borderColor": dynamicColors(), //make lines invisible
+      pointStyle: 'circle',
+      pointRadius:2,
+      "data":[{
+        "rssi":fullPayloadArray[i][2],
+        "time":fullPayloadArray[i][5]
+      }]
+    })
+  } else { //if mac matches previous, append data points
+    rssiVsTimeDataset[rssiVsTimeDataset.length-1].data.push({
+      "rssi":fullPayloadArray[i][2],
+      "time":fullPayloadArray[i][5]
+    })
+  }
+}
+
+function sortFunction3(a, b) { 
+  return a.label.localeCompare(b.label) //localeCompare used to sort strings correctly
+}
+
+rssiVsTimeDataset.sort(sortFunction3) //sort by SSID
+
+// Getting Array of Channels, used as chart label
+customSlice = fullPayloadArray => fullPayloadArray.slice(5, 6); // modified from -> https://stackoverflow.com/a/64358216
+var times = Array.from(new Set(fullPayloadArray.map(customSlice).flat()));
+times = times.sort(function (a, b) {  return a - b;  }); // modified from -> https://stackoverflow.com/a/21595293
+
+//----------------------------------------------------- RSSI vs TIME CODE BEGIN -----------------------------------------------------
+
+
+if (debugOutput){
+  console.log("vvv payloadArray after processing vvv");
+  console.log(JSON.parse(JSON.stringify(payloadArray)))  //stops "hoisting" of payloadArray, shows version at that point in code
+  console.log("vvv rssiVsChannelDataset vvv")
+  console.log(JSON.parse(JSON.stringify(rssiVsChannelDataset)))
+}
 
   var data = {
     labels: channels,
-    datasets: wifiDataset
+    datasets: rssiVsChannelDataset
   };
 
   //breakpoints for RSSI -> https://www.speedguide.net/faq/how-does-rssi-dbm-relate-to-signal-quality-percent-439
@@ -279,7 +366,7 @@ channels = channels.sort(function (a, b) {  return a - b;  }); // modified from 
   };
 
   
-  var config = {
+  var config = { //chart.js configuration variable
     type: 'line',
     data: data,
     options: {
@@ -328,7 +415,7 @@ channels = channels.sort(function (a, b) {  return a - b;  }); // modified from 
         scales: {
           y:{
               min: round10down(minRSSI),
-              max: round5up(maxRSSI),
+              max: round10up(maxRSSI),
               ticks: {
                   reverse: true, //allows for reversal of y-axis to show RSSI correctly (closer to top is better)
                   stepSize: 5, //taken from -> https://stackoverflow.com/a/37719294
@@ -369,6 +456,13 @@ channels = channels.sort(function (a, b) {  return a - b;  }); // modified from 
       window.location.reload();
     }
 
+    //Adding Switch Mode Button
+    let btn2 = document.createElement("button");
+    btn2.innerHTML = "Switch Plot Mode (alpha)";
+    btn2.id = "switchBtn"
+    document.getElementById('settingButtons').appendChild(btn2);
+    const switchBtn = document.getElementById('switchBtn')
+    switchBtn.addEventListener('click', switchMode)
   }
 
 //Resets the page if the fragment is changed (Fixes issue #3)
