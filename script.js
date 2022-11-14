@@ -37,49 +37,63 @@ const htmlLegendPlugin = { //modified from -> https://www.chartjs.org/docs/3.9.1
     // Reuse the built-in legendItems generator
     const items = chart.options.plugins.legend.labels.generateLabels(chart);
 
+    legendObj = {}
+    c = 0;
+    items.forEach(item =>{ //creates a dictionary with array of positions for each occurrence of SSID
+      if (legendObj[item.text] == undefined){ 
+        legendObj[item.text] = [c]
+      } else {
+        legendObj[item.text].push(c)
+      }
+      c=c+1
+    })
+
+    var oldItem = "";
+    var counter
     items.forEach(item => {
-      const li = document.createElement('li');
-      li.style.alignItems = 'center';
-      li.style.cursor = 'pointer';
-      li.style.display = 'flex';
-      li.style.flexDirection = 'row';
-      li.style.marginLeft = '10px';
+      
+      if(item.text != oldItem){ // only allows first occurrence of each SSID through and to be visible
+        oldItem = item.text;
+      
+        const li = document.createElement('li');
+        li.style.alignItems = 'center';
+        li.style.cursor = 'pointer';
+        li.style.display = 'flex';
+        li.style.flexDirection = 'row';
+        li.style.marginLeft = '10px';
 
-      li.onclick = () => {
-        const {type} = chart.config;
-        if (type === 'pie' || type === 'doughnut') {
-          // Pie and doughnut charts only have a single dataset and visibility is per item
-          chart.toggleDataVisibility(item.index);
-        } else {
-          chart.setDatasetVisibility(item.datasetIndex, !chart.isDatasetVisible(item.datasetIndex));
-        }
-        chart.update();
-      };
+        li.onclick = () => {
+          legendObj[item.text].forEach(thing => {
+            chart.setDatasetVisibility(thing,!chart.isDatasetVisible(thing)) //sets visibility of all occurrences of SSID based on click of visible SSID
+          })
+          chart.update();
+        };
 
-      // Color box
-      const boxSpan = document.createElement('span');
-      boxSpan.style.background = item.fillStyle;
-      boxSpan.style.borderColor = item.strokeStyle;
-      boxSpan.style.borderWidth = item.lineWidth + 'px';
-      boxSpan.style.borderRadius = '50%';
-      boxSpan.style.display = 'inline-block';
-      boxSpan.style.height = '15px';
-      boxSpan.style.marginRight = '10px';
-      boxSpan.style.width = '15px';
+        // Color box
+        const boxSpan = document.createElement('span');
+        boxSpan.style.background = item.fillStyle;
+        boxSpan.style.borderColor = item.strokeStyle;
+        boxSpan.style.borderWidth = item.lineWidth + 'px';
+        boxSpan.style.borderRadius = '50%';
+        boxSpan.style.display = 'inline-block';
+        boxSpan.style.height = '15px';
+        boxSpan.style.marginRight = '10px';
+        boxSpan.style.width = '15px';
 
-      // Text
-      const textContainer = document.createElement('p');
-      textContainer.style.color = item.fontColor;
-      textContainer.style.margin = 0;
-      textContainer.style.padding = 0;
-      textContainer.style.textDecoration = item.hidden ? 'line-through' : '';
+        // Text
+        const textContainer = document.createElement('p');
+        textContainer.style.color = item.fontColor;
+        textContainer.style.margin = 0;
+        textContainer.style.padding = 0;
+        textContainer.style.textDecoration = item.hidden ? 'line-through' : '';
 
-      const text = document.createTextNode(item.text);
-      textContainer.appendChild(text);
+        const text = document.createTextNode(item.text);
+        textContainer.appendChild(text);
 
-      li.appendChild(boxSpan);
-      li.appendChild(textContainer);
-      ul.appendChild(li);
+        li.appendChild(boxSpan);
+        li.appendChild(textContainer);
+        ul.appendChild(li);
+      }
     });
   }
 };
@@ -141,7 +155,7 @@ function switchMode(){
     config.type="line";
     data.labels = channels;
     data.datasets = rssiVsChannelDataset;
-    config.options.scales.x.title.text = "Signal Strength (dB)";
+    config.options.scales.x.title.text = "WiFi Channel";
     config.options.parsing.xAxisKey = "channel";
     myChart.update();
     plotMode = "rssiVsChannel";
@@ -227,7 +241,7 @@ function sortFunction(a, b) {
 payloadArray.sort(sortFunction) //sort payloadArray
 
 // There should be the same number of MAC addresses as length of payloadArray, if mismatch, it means that the MAC was not present at end of scan but was present during scan
-if (numMacAdd != payloadArray.length){alert("Warning: Some networks present at beginning of Airport Utility WiFi scan are not present at end. Only networks at the end of the scan are shown. Recommend a re-scan in Airport Utility. Dismiss to see graph anyway.")}
+if (numMacAdd != payloadArray.length){alert("Warning: Some networks present at beginning of Airport Utility WiFi scan are not present at end. Only networks at the end of the scan are shown in Signal Strength vs Channel Chart. Recommend a re-scan in Airport Utility. Dismiss to see chart anyway.")}
     
 //Building rssiVsChannelDataset
 rssiVsChannelDataset = []
