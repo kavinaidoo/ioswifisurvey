@@ -374,6 +374,7 @@ if (debugOutput){
     type: 'line',
     data: data,
     options: {
+        animation : false, 
         maintainAspectRatio:false,
         responsive:true,
         skipNull:true,
@@ -441,7 +442,7 @@ if (debugOutput){
     plugins: [htmlLegendPlugin],
   };
 
-  if (plotChartBool) { //if no errors, plot chart + add button
+  if (plotChartBool) { //if no errors, plot chart + add buttons
     
     // Plotting Chart
     var myChart = new Chart(
@@ -449,8 +450,44 @@ if (debugOutput){
       config
     );
     
+    // LEGEND BUTTONS (Below Legend)
+
+    //Adding Invert Visibility Button
+    var btn = document.createElement("button");
+    btn.innerHTML = "Invert Visibility";
+    btn.id = "hideAllBtn"
+    document.getElementById('legendButtons').appendChild(btn);
+    const hideAllButton = document.getElementById('hideAllBtn')
+    hideAllButton.addEventListener('click', invertVis)
+    function invertVis() {
+      var i = 0;
+      myChart.data.datasets.forEach(function() {
+        var isVisible = myChart.isDatasetVisible(i);
+        if (isVisible === true) {myChart.hide(i)}
+        if (isVisible === false){myChart.show(i)}
+        i = i+1;
+      });
+    }
+
+    //Adding Show All Button
+    var btn = document.createElement("button");
+    btn.innerHTML = "Show All";
+    btn.id = "showAllBtn"
+    document.getElementById('legendButtons').appendChild(btn);
+    const showAllButton = document.getElementById('showAllBtn')
+    showAllButton.addEventListener('click', showAll)
+    function showAll() {
+      var i = 0;
+      myChart.data.datasets.forEach(function() {
+        myChart.show(i)
+        i = i+1;
+      });
+    }
+
+    // SETTING BUTTONS (Below Chart)
+
     //Adding Reset Button
-    let btn = document.createElement("button");
+    var btn = document.createElement("button");
     btn.innerHTML = "Reset + Change Colours";
     btn.id = "resetBtn"
     document.getElementById('settingButtons').appendChild(btn);
@@ -461,10 +498,10 @@ if (debugOutput){
     }
 
     //Adding Switch Mode Button
-    let btn2 = document.createElement("button");
-    btn2.innerHTML = "Switch Plot Mode (alpha)";
-    btn2.id = "switchBtn"
-    document.getElementById('settingButtons').appendChild(btn2);
+    var btn = document.createElement("button");
+    btn.innerHTML = "Switch Plot Mode (alpha)";
+    btn.id = "switchBtn"
+    document.getElementById('settingButtons').appendChild(btn);
     const switchBtn = document.getElementById('switchBtn')
     switchBtn.addEventListener('click', switchMode)
   }
