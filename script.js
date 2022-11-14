@@ -149,6 +149,17 @@ function switchMode(){
 
 }
 
+function assignColors(fullPayloadArray){
+  var obj = {};
+
+  fullPayloadArray.forEach(function(x) {
+    if (obj[x[0]] == undefined){obj[x[0]] = dynamicColors()}
+    if (x[0] == ""){obj["<hidden>"] = dynamicColors()}
+  });
+
+  return obj
+}
+
 var plotChartBool = true; //true until there's a problem, suppresses drawing of chart & buttons
 var debugOutput = false; //enables console.logs
 var plotMode = "rssiVsChannel"; //determines type of chart
@@ -193,6 +204,9 @@ for (var i = 0; i < payloadArray.length; i++) {
 
 var fullPayloadArray = payloadArray; //contains entire payloadArray (used for rssiVsTime), stored here because original payloadArray is filtered
 
+//initially assigning colours
+colorObject = assignColors(fullPayloadArray);
+
 //----------------------------------------------------- RSSI vs CHANNEL CODE BEGIN -----------------------------------------------------
 
 payloadArray = payloadArray.filter(entry => entry[5] == latestTime); //remove all rows which are not latestTime (plots values only at end of scan)
@@ -222,7 +236,7 @@ for (var i = 0; i < payloadArray.length; i++) {
   if (i == 0){ //pushes first data into array
     rssiVsChannelDataset.push({ 
         "label":payloadArray[i][0]=="" ? "<hidden>" : payloadArray[i][0], //replacing blank SSID with <hidden>
-        "backgroundColor": dynamicColors(),
+        "backgroundColor": colorObject[payloadArray[i][0]],
         "borderColor": "rgba(0,0,0,0)", //make lines invisible
         pointStyle: 'circle',
         pointRadius:15,
@@ -234,7 +248,7 @@ for (var i = 0; i < payloadArray.length; i++) {
   } else if (payloadArray[i][0] != payloadArray[i-1][0]){ //if ssid doesn't match previous, add next ssid
     rssiVsChannelDataset.push({
       "label":payloadArray[i][0]=="" ? "<hidden>" : payloadArray[i][0], //replacing blank SSID with <hidden>
-      "backgroundColor": dynamicColors(),
+      "backgroundColor": colorObject[payloadArray[i][0]],
       "borderColor": "rgba(0,0,0,0)", //make lines invisible
       pointStyle: 'circle',
       pointRadius:15,
@@ -276,8 +290,8 @@ for (var i = 0; i < fullPayloadArray.length; i++) {
   if (i == 0){ //pushes first data into array
     rssiVsTimeDataset.push({ 
         "label":fullPayloadArray[i][0]=="" ? "<hidden>" : fullPayloadArray[i][0], //replacing blank SSID with <hidden>
-        "backgroundColor": dynamicColors(),
-        "borderColor": dynamicColors(),
+        "backgroundColor": colorObject[fullPayloadArray[i][0]],
+        "borderColor": colorObject[fullPayloadArray[i][0]],
         pointStyle: 'circle',
         pointRadius:2,
         cubicInterpolationMode: 'monotone',
@@ -290,8 +304,8 @@ for (var i = 0; i < fullPayloadArray.length; i++) {
   } else if (fullPayloadArray[i][1] != fullPayloadArray[i-1][1]){ //if mac doesn't match previous, add next ssid
     rssiVsTimeDataset.push({
       "label":fullPayloadArray[i][0]=="" ? "<hidden>" : fullPayloadArray[i][0], //replacing blank SSID with <hidden>
-      "backgroundColor": dynamicColors(),
-      "borderColor": dynamicColors(), //make lines invisible
+      "backgroundColor": colorObject[fullPayloadArray[i][0]],
+      "borderColor": colorObject[fullPayloadArray[i][0]],
       pointStyle: 'circle',
       pointRadius:2,
       cubicInterpolationMode: 'monotone',
@@ -486,15 +500,27 @@ if (debugOutput){
 
     // SETTING BUTTONS (Below Chart)
 
-    //Adding Reset Button
+    //Adding Change Colors Button
     var btn = document.createElement("button");
-    btn.innerHTML = "Reset + Change Colours";
-    btn.id = "resetBtn"
+    btn.innerHTML = "Change Colours";
+    btn.id = "changeColBtn"
     document.getElementById('settingButtons').appendChild(btn);
-    const resetButton = document.getElementById('resetBtn')
-    resetButton.addEventListener('click', resetPage)
-    function resetPage(){
-      window.location.reload();
+    const resetButton = document.getElementById('changeColBtn')
+    resetButton.addEventListener('click', changeColours)
+    function changeColours(){
+      colorObject = assignColors(fullPayloadArray); //creating new set of colours
+
+      rssiVsChannelDataset.forEach(function(element){ //updating rssiVsChannelDataset colors
+        element.backgroundColor = colorObject[element["label"]];
+      })
+
+      rssiVsTimeDataset.forEach(function(element){ //updating rssiVsTimeDataset colors
+        element.backgroundColor = colorObject[element["label"]];
+        element.borderColor = colorObject[element["label"]];
+      })
+
+      myChart.update() //update chart to show new colors
+
     }
 
     //Adding Switch Mode Button
@@ -508,5 +534,5 @@ if (debugOutput){
 
 //Resets the page if the fragment is changed (Fixes issue #3)
 window.addEventListener('hashchange', () => { //https://developer.mozilla.org/en-US/docs/Web/API/Window/hashchange_event
-  resetPage()
+  window.location.reload();
 });
