@@ -1,11 +1,11 @@
 function round10up(x) //taken from -> https://stackoverflow.com/a/18953446
 {
-    return Math.ceil(x/10)*10;
+    return Math.min(Math.ceil((x+5)/10)*10,0);
 }
 
 function round10down(x) //taken from -> https://stackoverflow.com/a/18953446
 {
-    return Math.floor(x/10)*10;
+    return Math.max(Math.floor((x-5)/10)*10,-100);
 }
 
 const getOrCreateLegendList = (chart, id) => { //modified from -> https://www.chartjs.org/docs/3.9.1/samples/legend/html.html
@@ -163,19 +163,23 @@ var dynamicColors = function() { // modified from -> https://github.com/chartjs/
 function switchMode(){
 
   if (plotMode == "rssiVsChannel"){ //code to change to rssiVsTime
+    tooltipPrependText = "Seconds Elapsed: "
     config.type="line";
     data.datasets = rssiVsTimeDataset;
     data.labels = times;
-    config.options.scales.x.title.text = "Time (s)";
+    config.options.scales.x.title.text = "Seconds Elapsed (s)";
+    //config.options.scales.x.type = "linear";
     config.options.parsing.xAxisKey = "time";
     myChart.update();
     plotMode = "rssiVsTime";
     updateVisibleState();
   } else if (plotMode == "rssiVsTime"){ //code to change to rssiVsChannel
+    tooltipPrependText = "Channel: "
     config.type="line";
     data.labels = channels;
     data.datasets = rssiVsChannelDataset;
     config.options.scales.x.title.text = "WiFi Channel";
+    //config.options.scales.x.type = "category";
     config.options.parsing.xAxisKey = "channel";
     myChart.update();
     plotMode = "rssiVsChannel";
@@ -230,6 +234,7 @@ var latestTime = 0;
 var intArray;
 var minRSSI = 0;
 var maxRSSI = -100;
+var firstTime = 100000000000;
 
 for (var i = 0; i < payloadArray.length; i++) { 
     payloadArray[i][2] = Number(payloadArray[i][2]) //changing RSSI to number
@@ -238,6 +243,8 @@ for (var i = 0; i < payloadArray.length; i++) {
     payloadArray[i][3] = Number(payloadArray[i][3]) //changing Channel to number
     intArray = payloadArray[i][4].substring(0,8).split(':').map(Number); // modified from -> https://stackoverflow.com/a/15677905
     payloadArray[i][5] = intArray[0]*60*60 + intArray[1]*60 + intArray[2]; //adding time in seconds
+    firstTime = Math.min(firstTime,payloadArray[i][5])
+    payloadArray[i][5] = payloadArray[i][5] - firstTime
     latestTime = Math.max(latestTime,payloadArray[i][5])
 }
 
@@ -415,6 +422,7 @@ var annoWeak = { //rssiWeak
   yMin: rssiWeakest,
 };
 
+tooltipPrependText = "Channel: "
 
 var config = { //chart.js configuration variable
   type: 'line',
@@ -436,10 +444,10 @@ var config = { //chart.js configuration variable
         tooltip: {
           callbacks:{
             title: function(context) {
-              let title = "Channel "+context[0].label; // Adds "Channel" to tooltip. eg. 1 becomes Channel 1
+              let title = tooltipPrependText+context[0].label; // Adds "Channel" to tooltip. eg. 1 becomes Channel 1
               return title;
             }
-        },
+          },
           itemSort: function(a, b) {
             return b.raw.rssi - a.raw.rssi; //sorts the tooltip by RSSI to match chart
           },
@@ -478,6 +486,8 @@ var config = { //chart.js configuration variable
             }
         },
         x:{
+          //max: latestTime,
+          type:"category",
           title:{
             display:true,
             text:"WiFi Channel"
