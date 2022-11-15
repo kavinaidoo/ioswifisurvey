@@ -24,6 +24,24 @@ const getOrCreateLegendList = (chart, id) => { //modified from -> https://www.ch
   return listContainer;
 };
 
+function storeVisibleState(){
+  zz = 0;
+  myChart.data.datasets.forEach(function(x) {
+    visibleStateObj[x.label] = myChart.isDatasetVisible(zz)
+    zz = zz + 1;
+  })
+}
+
+function updateVisibleState(){
+  i=0;
+  myChart.data.datasets.forEach(function(x) {
+    var isVisible = visibleStateObj[x.label];
+    if (isVisible === true) {myChart.show(i)}
+    if (isVisible === false){myChart.hide(i)}
+    i = i+1;
+  });
+}
+
 const htmlLegendPlugin = { //modified from -> https://www.chartjs.org/docs/3.9.1/samples/legend/html.html
   id: 'htmlLegend',
   afterUpdate(chart, args, options) {
@@ -67,6 +85,7 @@ const htmlLegendPlugin = { //modified from -> https://www.chartjs.org/docs/3.9.1
             chart.setDatasetVisibility(thing,!chart.isDatasetVisible(thing)) //sets visibility of all occurrences of SSID based on click of visible SSID
           })
           chart.update();
+          storeVisibleState(chart);
         };
 
         // Color box
@@ -151,6 +170,7 @@ function switchMode(){
     config.options.parsing.xAxisKey = "time";
     myChart.update();
     plotMode = "rssiVsTime";
+    updateVisibleState();
   } else if (plotMode == "rssiVsTime"){ //code to change to rssiVsChannel
     config.type="line";
     data.labels = channels;
@@ -159,6 +179,7 @@ function switchMode(){
     config.options.parsing.xAxisKey = "channel";
     myChart.update();
     plotMode = "rssiVsChannel";
+    updateVisibleState();
   }
 
 }
@@ -348,7 +369,9 @@ customSlice = fullPayloadArray => fullPayloadArray.slice(5, 6); // modified from
 var times = Array.from(new Set(fullPayloadArray.map(customSlice).flat()));
 times = times.sort(function (a, b) {  return a - b;  }); // modified from -> https://stackoverflow.com/a/21595293
 
-//----------------------------------------------------- RSSI vs TIME CODE BEGIN -----------------------------------------------------
+//----------------------------------------------------- RSSI vs TIME CODE END -----------------------------------------------------
+
+visibleStateObj = {}
 
 
 if (debugOutput){
@@ -358,193 +381,195 @@ if (debugOutput){
   console.log(JSON.parse(JSON.stringify(rssiVsChannelDataset)))
 }
 
-  var data = {
-    labels: channels,
-    datasets: rssiVsChannelDataset
-  };
+var data = {
+  labels: channels,
+  datasets: rssiVsChannelDataset
+};
 
-  //breakpoints for RSSI -> https://www.speedguide.net/faq/how-does-rssi-dbm-relate-to-signal-quality-percent-439
-  rssiStrong = 0
-  rssiMedium = -55;
-  rssiWeak = -85;
-  rssiWeakest = -100
+//breakpoints for RSSI -> https://www.speedguide.net/faq/how-does-rssi-dbm-relate-to-signal-quality-percent-439
+rssiStrong = 0
+rssiMedium = -55;
+rssiWeak = -85;
+rssiWeakest = -100
 
-  //Defines the annotations for Red/Yellow/Green background when signal is strong/medium/weak
-  var annoStrong = { //rssiStrong
-    display: true,
-    type: 'box',
-    backgroundColor: 'rgba(165, 214, 167, 0.1)',
-    borderWidth: 0,
-    yMax: rssiStrong,
-    yMin: rssiMedium,
-  };
+//Defines the annotations for Red/Yellow/Green background when signal is strong/medium/weak
+var annoStrong = { //rssiStrong
+  display: true,
+  type: 'box',
+  backgroundColor: 'rgba(165, 214, 167, 0.1)',
+  borderWidth: 0,
+  yMax: rssiStrong,
+  yMin: rssiMedium,
+};
 
-  var annoMedium = { //rssiMedium
-    display: true,
-    type: 'box',
-    backgroundColor: 'rgba(255, 245, 157, 0.1)',
-    borderWidth: 0,
-    yMax: rssiMedium,
-    yMin: rssiWeak,
-  };
+var annoMedium = { //rssiMedium
+  display: true,
+  type: 'box',
+  backgroundColor: 'rgba(255, 245, 157, 0.1)',
+  borderWidth: 0,
+  yMax: rssiMedium,
+  yMin: rssiWeak,
+};
 
-  var annoWeak = { //rssiWeak
-    display: true,
-    type: 'box',
-    backgroundColor: 'rgba(255, 133, 119, 0.07)',
-    borderWidth: 0,
-    yMax: rssiWeak,
-    yMin: rssiWeakest,
-  };
+var annoWeak = { //rssiWeak
+  display: true,
+  type: 'box',
+  backgroundColor: 'rgba(255, 133, 119, 0.07)',
+  borderWidth: 0,
+  yMax: rssiWeak,
+  yMin: rssiWeakest,
+};
 
-  
-  var config = { //chart.js configuration variable
-    type: 'line',
-    data: data,
-    options: {
-        animation : false, 
-        maintainAspectRatio:false,
-        responsive:true,
-        skipNull:true,
-        interaction: { //defines tooltip behaviour
-          axis: "x",
-          intersect: false,
-          mode: 'nearest',
+
+var config = { //chart.js configuration variable
+  type: 'line',
+  data: data,
+  options: {
+      animation : false, 
+      maintainAspectRatio:false,
+      responsive:true,
+      skipNull:true,
+      interaction: { //defines tooltip behaviour
+        axis: "x",
+        intersect: false,
+        mode: 'nearest',
+      },
+      plugins:{
+        htmlLegend: {
+          containerID: 'legend-container'
         },
-        plugins:{
-          htmlLegend: {
-            containerID: 'legend-container'
-          },
-          tooltip: {
-            callbacks:{
-              title: function(context) {
-                let title = "Channel "+context[0].label; // Adds "Channel" to tooltip. eg. 1 becomes Channel 1
-                return title;
-              }
-          },
-            itemSort: function(a, b) {
-              return b.raw.rssi - a.raw.rssi; //sorts the tooltip by RSSI to match chart
-            },
-            usePointStyle: true,
-          },
-          legend:{
-            display:false,
-          },
-          annotation: { // adapted from -> https://www.chartjs.org/chartjs-plugin-annotation/latest/samples/box/quarters.html
-            common: {
-              drawTime: 'afterDraw'
-            },
-            annotations: {
-              annoStrong,
-              annoMedium,
-              annoWeak
+        tooltip: {
+          callbacks:{
+            title: function(context) {
+              let title = "Channel "+context[0].label; // Adds "Channel" to tooltip. eg. 1 becomes Channel 1
+              return title;
             }
-          }
         },
-        parsing: {
-            xAxisKey: 'channel',
-            yAxisKey: 'rssi'
-        },
-        scales: {
-          y:{
-              min: round10down(minRSSI),
-              max: round10up(maxRSSI),
-              ticks: {
-                  reverse: true, //allows for reversal of y-axis to show RSSI correctly (closer to top is better)
-                  stepSize: 5, //taken from -> https://stackoverflow.com/a/37719294
-
-              },
-              title:{
-                display:true,
-                text:"Signal Strength (dB)"
-              }
+          itemSort: function(a, b) {
+            return b.raw.rssi - a.raw.rssi; //sorts the tooltip by RSSI to match chart
           },
-          x:{
-            title:{
-              display:true,
-              text:"WiFi Channel"
-            }
+          usePointStyle: true,
+        },
+        legend:{
+          display:false,
+        },
+        annotation: { // adapted from -> https://www.chartjs.org/chartjs-plugin-annotation/latest/samples/box/quarters.html
+          common: {
+            drawTime: 'afterDraw'
+          },
+          annotations: {
+            annoStrong,
+            annoMedium,
+            annoWeak
           }
         }
-    },
-    plugins: [htmlLegendPlugin],
-  };
+      },
+      parsing: {
+          xAxisKey: 'channel',
+          yAxisKey: 'rssi'
+      },
+      scales: {
+        y:{
+            min: round10down(minRSSI),
+            max: round10up(maxRSSI),
+            ticks: {
+                reverse: true, //allows for reversal of y-axis to show RSSI correctly (closer to top is better)
+                stepSize: 5, //taken from -> https://stackoverflow.com/a/37719294
 
-  if (plotChartBool) { //if no errors, plot chart + add buttons
-    
-    // Plotting Chart
-    var myChart = new Chart(
-      document.getElementById('myChart'),
-      config
-    );
-    
-    // LEGEND BUTTONS (Below Legend)
+            },
+            title:{
+              display:true,
+              text:"Signal Strength (dB)"
+            }
+        },
+        x:{
+          title:{
+            display:true,
+            text:"WiFi Channel"
+          }
+        }
+      }
+  },
+  plugins: [htmlLegendPlugin],
+};
 
-    //Adding Invert Visibility Button
-    var btn = document.createElement("button");
-    btn.innerHTML = "Invert Visibility";
-    btn.id = "hideAllBtn"
-    document.getElementById('legendButtons').appendChild(btn);
-    const hideAllButton = document.getElementById('hideAllBtn')
-    hideAllButton.addEventListener('click', invertVis)
-    function invertVis() {
-      var i = 0;
-      myChart.data.datasets.forEach(function() {
-        var isVisible = myChart.isDatasetVisible(i);
-        if (isVisible === true) {myChart.hide(i)}
-        if (isVisible === false){myChart.show(i)}
-        i = i+1;
-      });
-    }
+if (plotChartBool) { //if no errors, plot chart + add buttons
+  
+  // Plotting Chart
+  var myChart = new Chart(
+    document.getElementById('myChart'),
+    config
+  );
 
-    //Adding Show All Button
-    var btn = document.createElement("button");
-    btn.innerHTML = "Show All";
-    btn.id = "showAllBtn"
-    document.getElementById('legendButtons').appendChild(btn);
-    const showAllButton = document.getElementById('showAllBtn')
-    showAllButton.addEventListener('click', showAll)
-    function showAll() {
-      var i = 0;
-      myChart.data.datasets.forEach(function() {
-        myChart.show(i)
-        i = i+1;
-      });
-    }
+  storeVisibleState();
+  
+  // LEGEND BUTTONS (Below Legend)
 
-    // SETTING BUTTONS (Below Chart)
-
-    //Adding Change Colors Button
-    var btn = document.createElement("button");
-    btn.innerHTML = "Change Colours";
-    btn.id = "changeColBtn"
-    document.getElementById('settingButtons').appendChild(btn);
-    const resetButton = document.getElementById('changeColBtn')
-    resetButton.addEventListener('click', changeColours)
-    function changeColours(){
-      colorObject = assignColors(fullPayloadArray); //creating new set of colours
-
-      rssiVsChannelDataset.forEach(function(element){ //updating rssiVsChannelDataset colors
-        element.backgroundColor = colorObject[element["label"]];
-      })
-
-      rssiVsTimeDataset.forEach(function(element){ //updating rssiVsTimeDataset colors
-        element.backgroundColor = colorObject[element["label"]];
-        element.borderColor = colorObject[element["label"]];
-      })
-
-      myChart.update() //update chart to show new colors
-
-    }
-
-    //Adding Switch Mode Button
-    var btn = document.createElement("button");
-    btn.innerHTML = "Switch Plot Mode (alpha)";
-    btn.id = "switchBtn"
-    document.getElementById('settingButtons').appendChild(btn);
-    const switchBtn = document.getElementById('switchBtn')
-    switchBtn.addEventListener('click', switchMode)
+  //Adding Invert Visibility Button
+  var btn = document.createElement("button");
+  btn.innerHTML = "Invert Visibility";
+  btn.id = "hideAllBtn"
+  document.getElementById('legendButtons').appendChild(btn);
+  const hideAllButton = document.getElementById('hideAllBtn')
+  hideAllButton.addEventListener('click', invertVis)
+  function invertVis() {
+    var i = 0;
+    myChart.data.datasets.forEach(function() {
+      var isVisible = myChart.isDatasetVisible(i);
+      if (isVisible === true) {myChart.hide(i)}
+      if (isVisible === false){myChart.show(i)}
+      i = i+1;
+    });
+    storeVisibleState();
   }
+
+  //Adding Show All Button
+  var btn = document.createElement("button");
+  btn.innerHTML = "Show All";
+  btn.id = "showAllBtn"
+  document.getElementById('legendButtons').appendChild(btn);
+  const showAllButton = document.getElementById('showAllBtn')
+  showAllButton.addEventListener('click', showAll)
+  function showAll() {
+    var i = 0;
+    myChart.data.datasets.forEach(function() {
+      myChart.show(i)
+      i = i+1;
+    });
+    storeVisibleState();
+  }
+
+  //Adding Change Colors Button
+  var btn = document.createElement("button");
+  btn.innerHTML = "Change Colours";
+  btn.id = "changeColBtn"
+  document.getElementById('legendButtons').appendChild(btn);
+  const resetButton = document.getElementById('changeColBtn')
+  resetButton.addEventListener('click', changeColours)
+  function changeColours(){
+    colorObject = assignColors(fullPayloadArray); //creating new set of colours
+
+    rssiVsChannelDataset.forEach(function(element){ //updating rssiVsChannelDataset colors
+      element.backgroundColor = colorObject[element["label"]];
+    })
+
+    rssiVsTimeDataset.forEach(function(element){ //updating rssiVsTimeDataset colors
+      element.backgroundColor = colorObject[element["label"]];
+      element.borderColor = colorObject[element["label"]];
+    })
+
+    myChart.update() //update chart to show new colors
+
+  }
+
+  //Adding Switch Mode Button
+  var btn = document.createElement("button");
+  btn.innerHTML = "Switch Plot Mode (alpha)";
+  btn.id = "switchBtn"
+  document.getElementById('legendButtons').appendChild(btn);
+  const switchBtn = document.getElementById('switchBtn')
+  switchBtn.addEventListener('click', switchMode)
+}
 
 //Resets the page if the fragment is changed (Fixes issue #3)
 window.addEventListener('hashchange', () => { //https://developer.mozilla.org/en-US/docs/Web/API/Window/hashchange_event
